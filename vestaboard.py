@@ -23,6 +23,14 @@ class VestaboardResult:
         else:
             self.data = None
 
+    def decode(self, inline=False)->List[str]:
+        if self.data is None:
+            raise ValueError('unable to decode None')
+        if 'message' not in self.data:
+            raise KeyError('unable to find message key in response data')
+        
+        return Vestaboard.decode(self.data['message'], inline=inline)
+
     def __str__(self) -> str:
         return f'VestaboardResult[succeeded={self.succeeded}, data={self.data}]'
 
@@ -124,9 +132,26 @@ class Vestaboard:
             for cn in range(Vestaboard.NUM_COLS):
                 if(line[cn]!=' '):
                     arr[ln][cn]=Vestaboard.CHARACTERS_MAP_INVERTED[line[cn]]
-                
         return arr
     
+    @staticmethod
+    def decode(input:List[List[int]], inline=False)->List[str]|str:
+        res:List[str]=[]
+        for inp in input:
+            line=''
+            for num in inp:
+                if num not in Vestaboard.CHARACTERS_MAP.keys():
+                    raise KeyError(f'unable to decode numeric value {num}')
+                line+=Vestaboard.CHARACTERS_MAP[num][0]
+            res.append(line)
+
+        if inline:
+            res2=''
+            for line in res:
+                res2+=f' {line.strip()}'
+            res = res2.strip()
+        return res
+
     @staticmethod
     def validate(inp:str|List[List[int]])->bool:
         if type(inp) is str:
@@ -184,7 +209,6 @@ class Vestaboard:
             encoded_data = data.encode('utf-8')
             r = http.request(method, self.baseUrl+uri,
                              body=encoded_data, headers=headers)
-        print(r.data.decode())
         return VestaboardResult(r)
   
     def read(self) -> VestaboardResult:
@@ -193,7 +217,6 @@ class Vestaboard:
     def raw(self, data:List[List[int]])-> None|VestaboardResult:
         if not Vestaboard.validate(data):
            return None
-        print(data)
         return self.requestRest('/local-api/message','POST',data=data)
 
     def write(self, inputstr:str, halign:HorizontalAlign=HorizontalAlign.CENTER, valign:VerticalAlign=VerticalAlign.CENTER):
@@ -204,8 +227,6 @@ class Vestaboard:
         if not Vestaboard.validate(inputstr):
            return None
         outp = Vestaboard.translate(inputstr, halign, valign)
-        for line in outp:
-            print(line)
         return self.raw(outp)
 
 
