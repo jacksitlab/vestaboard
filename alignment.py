@@ -15,11 +15,11 @@ class VerticalAlign(Enum):
 class TextAlignment:
 
 
-    def __init__(self, width, height, splitOperators=[' ']) -> None:
+    def __init__(self, width, height, splitOperators=[' '], widthFactor=0.8) -> None:
         self.width = width
         self.height = height
         self.splitOperators = splitOperators
-        self.withFactor=0.8
+        self.widthFactor=widthFactor
       
     
     def align(self, inputstr:str, halign:HorizontalAlign = HorizontalAlign.CENTER, valign:VerticalAlign = VerticalAlign.CENTER)-> List[str]:
@@ -29,7 +29,7 @@ class TextAlignment:
             raise ValueError('input string seems to be tooo long for the matrix')
         
         words = inputstr.split(' ')
-        max_chars_per_line = math.floor(self.withFactor*self.width)
+        max_chars_per_line = math.floor(self.widthFactor*self.width)
         result:List[inputstr]=[]
         curLine=''
         tmpLine=''

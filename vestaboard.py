@@ -120,13 +120,19 @@ class Vestaboard:
                   valign:VerticalAlign=VerticalAlign.CENTER,
                   fillRest:int=0)->List[List[int]]:
         # check for special inputs
-        arr:List[List[int]]=[]
-        for i in range(Vestaboard.NUM_ROWS):
-            arr.append([fillRest]*Vestaboard.NUM_COLS)#
+        
         
         helper = TextAlignment(Vestaboard.NUM_COLS, Vestaboard.NUM_ROWS)
         lines = helper.align(inputstr,halign = halign, valign=valign)        
-        for ln in range(Vestaboard.NUM_ROWS):
+        return Vestaboard.encode(lines)
+    
+    @staticmethod
+    def encode(lines:List[str], fillRest:int=0)->List[List[int]]:
+        arr:List[List[int]]=[]
+        for i in range(len(lines)):
+            arr.append([fillRest]*Vestaboard.NUM_COLS)#
+        
+        for ln in range(len(lines)):
             line  = lines[ln]
             line = line.upper()
             for cn in range(Vestaboard.NUM_COLS):
@@ -228,5 +234,53 @@ class Vestaboard:
            return None
         outp = Vestaboard.translate(inputstr, halign, valign)
         return self.raw(outp)
+
+    def clear(self, fillValue = 0):
+        arr:List[List[int]]=[]
+        for i in range(Vestaboard.NUM_ROWS):
+            arr.append([fillValue]*Vestaboard.NUM_COLS)
+        return self.raw(arr)
+        
+    def writeQuote(self, quote:str, author:str, improveAlignment=False):
+        # check if author fits onto one line
+        # max allowed should be two lines
+        if len(author)>2*Vestaboard.NUM_COLS:
+            raise ValueError(f'author name \'{author}\' seems to be too long. needs more than two lines')
+        ta = TextAlignment(Vestaboard.NUM_COLS, Vestaboard.NUM_ROWS, widthFactor=0.9)
+        if(self.autocorrectLang):
+            author = self.correctLang('de',author)
+            quote = self.correctLang('de',quote)
+        authorStrings = ta.align(author,halign=HorizontalAlign.RIGHT,valign=VerticalAlign.BOTTOM)
+        quoteStrings = ta.align(f'"{quote}"',halign=HorizontalAlign.LEFT, valign=VerticalAlign.TOP)
+        if improveAlignment:
+            rowsAuthor = 0
+            for row in authorStrings:
+                if len(row)>0: 
+                    rowsAuthor+=1
+            rowsQuote=0
+            for row in quoteStrings:
+                if len(row)>0: 
+                    rowsQuote+=1
+            if rowsQuote<3 and rowsAuthor<=2:
+                quoteStrings.insert(0,quoteStrings.pop())
+
+        authorMatrix = Vestaboard.encode(authorStrings)
+        quoteMatrix = Vestaboard.encode(quoteStrings)
+        # check overlaps
+        fillValue:int = 0
+        for rowIdx in range(Vestaboard.NUM_ROWS):
+            for colIdx in range(Vestaboard.NUM_COLS):
+                if (quoteMatrix[rowIdx][colIdx] != fillValue) and (authorMatrix[rowIdx][colIdx] != fillValue):
+                    raise ValueError(f'overlapping author and quote on line {rowIdx} in column {colIdx}')
+        # unite
+        for rowIdx in range(Vestaboard.NUM_ROWS):
+            for colIdx in range(Vestaboard.NUM_COLS):
+                if authorMatrix[rowIdx][colIdx] != fillValue:
+                    quoteMatrix[rowIdx][colIdx] = authorMatrix[rowIdx][colIdx]
+        
+        return self.raw(quoteMatrix)
+        
+
+        
 
 

@@ -45,6 +45,18 @@ vestaboard.write("Hier könnte Ihre Werbung stehen!",valign=VerticalAlign.CENTER
 
 ```
 
+Write Quote example
+```python
+from vestaboard import Vestaboard
+from alignment import *
+from config import *
+
+vestaboard = Vestaboard(config['host'],config['localApiKey'] ,autocorrectLang=True)
+vestaboard.write("Mal verliert man, und mal gewinnen die anderen.","Otto Rehagel")
+
+```
+
+![Quote Example](./images/quote_example.png)
 
 
 
