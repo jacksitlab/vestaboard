@@ -1,4 +1,3 @@
-import base64
 import json
 from enum import Enum
 from alignment import VerticalAlign, HorizontalAlign, TextAlignment
@@ -11,6 +10,11 @@ def invertMap(inp:dict)->dict:
         for value in values:
             outp[value]=key
     return outp
+
+
+class VestaOutput(Enum):
+    VESTABOARD=1,
+    STDOUT=2
 
 class VestaboardResult:
     def __init__(self, response) -> None:
@@ -220,12 +224,18 @@ class Vestaboard:
     def read(self) -> VestaboardResult:
         return self.requestRest('/local-api/message','GET')
     
-    def raw(self, data:List[List[int]])-> None|VestaboardResult:
+    def raw(self, data:List[List[int]], output=VestaOutput.VESTABOARD)-> None|VestaboardResult:
         if not Vestaboard.validate(data):
            return None
+        if output == VestaOutput.STDOUT:
+            print('|'+'-'*Vestaboard.NUM_COLS+"|")
+            for row in Vestaboard.decode(data):
+                print('|'+row+'|')
+            print('|'+'-'*Vestaboard.NUM_COLS+"|")
+            return
         return self.requestRest('/local-api/message','POST',data=data)
 
-    def write(self, inputstr:str, halign:HorizontalAlign=HorizontalAlign.CENTER, valign:VerticalAlign=VerticalAlign.CENTER):
+    def write(self, inputstr:str, halign:HorizontalAlign=HorizontalAlign.CENTER, valign:VerticalAlign=VerticalAlign.CENTER, output=VestaOutput.VESTABOARD):
         if(self.autocorrectLang):
             inputstr = self.correctLang('de',inputstr)
         if inputstr is None:
@@ -233,7 +243,7 @@ class Vestaboard:
         if not Vestaboard.validate(inputstr):
            return None
         outp = Vestaboard.translate(inputstr, halign, valign)
-        return self.raw(outp)
+        return self.raw(outp, output)
 
     def clear(self, fillValue = 0):
         arr:List[List[int]]=[]
@@ -241,7 +251,7 @@ class Vestaboard:
             arr.append([fillValue]*Vestaboard.NUM_COLS)
         return self.raw(arr)
         
-    def writeQuote(self, quote:str, author:str, improveAlignment=False):
+    def writeQuote(self, quote:str, author:str, improveAlignment=False, output=VestaOutput.VESTABOARD):
         # check if author fits onto one line
         # max allowed should be two lines
         if len(author)>2*Vestaboard.NUM_COLS:
@@ -255,13 +265,13 @@ class Vestaboard:
         if improveAlignment:
             rowsAuthor = 0
             for row in authorStrings:
-                if len(row)>0: 
+                if len(row.strip())>0: 
                     rowsAuthor+=1
             rowsQuote=0
             for row in quoteStrings:
-                if len(row)>0: 
+                if len(row.strip())>0: 
                     rowsQuote+=1
-            if rowsQuote<3 and rowsAuthor<=2:
+            if (rowsQuote<3 and rowsAuthor<=2) or (rowsQuote==3 and rowsAuthor<2):
                 quoteStrings.insert(0,quoteStrings.pop())
 
         authorMatrix = Vestaboard.encode(authorStrings)
@@ -278,7 +288,7 @@ class Vestaboard:
                 if authorMatrix[rowIdx][colIdx] != fillValue:
                     quoteMatrix[rowIdx][colIdx] = authorMatrix[rowIdx][colIdx]
         
-        return self.raw(quoteMatrix)
+        return self.raw(quoteMatrix, output)
         
 
         
