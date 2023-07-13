@@ -21,14 +21,28 @@ class TextAlignment:
         self.splitOperators = splitOperators
         self.widthFactor=widthFactor
       
-    
+    def split(self, inputstr:str)->List[str]:
+        if len(self.splitOperators)==0:
+            return [inputstr]
+        elif len(self.splitOperators)==1:
+            return inputstr.split(self.splitOperators[0])
+        else:
+            items=[]
+            cur_item=""
+            for char in inputstr:
+                if char in self.splitOperators:
+                    items.append(cur_item)
+                    cur_item=""
+                else:
+                    cur_item+=char
+
     def align(self, inputstr:str, halign:HorizontalAlign = HorizontalAlign.CENTER, valign:VerticalAlign = VerticalAlign.CENTER)-> List[str]:
         
 
         if len(inputstr)>self.width*self.height:
             raise ValueError('input string seems to be tooo long for the matrix')
         
-        words = inputstr.split(' ')
+        words = self.split(inputstr)
         max_chars_per_line = math.floor(self.widthFactor*self.width)
         result:List[inputstr]=[]
         curLine=''
@@ -50,7 +64,7 @@ class TextAlignment:
                 break
             
             # retry with higher scale factor/more chars per line
-            words = inputstr.split(' ')
+            words = self.split(inputstr)
             result=[]
             max_chars_per_line +=1
             curLine=''
